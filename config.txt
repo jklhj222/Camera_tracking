@@ -1,0 +1,37 @@
+[DARKNET]
+;SHARED_LIB = /home/adat/pkg/darknet_yolov3_cuda10/libdarknet.so 
+SHARED_LIB = /home/adat/pkg/darknet_yolo_v4_pre/libdarknet.so 
+;SHARED_LIB = /home/hugh/pkg/local/darknet_alexyab/libdarknet.so 
+;SHARED_LIB = /usr/local/bin/libdarknet.so
+
+[DARKNET_TRACK]
+;MODEL_DIR = /workspace/T_tracker_0826v4t 
+MODEL_DIR = /home/adat/Tracking_models/T_tracker_0826v4t 
+;MODEL_DIR = /home/adat/AIM/VEK0729/weights/new/T_tracker_0731v4t 
+;MODEL_DIR = /home/hugh/Dropbox/tmp-PC/AIM_20200818/VEK0729/weights/new/T_tracker_0731v4t
+TEMP_REAL_SIZE = (250 ,395)
+CAM_FOV = (49.68, 66.13)
+CUDA_IDX = 0
+
+[DARKNET_DETECT]
+;MODEL_DIR = /workspace/T_detect_0826v4t
+MODEL_DIR = /home/adat/Detect_models/T_detect_0826v4t
+;MODEL_DIR = /home/adat/VEK0729/weights/new/T_detect_0824v4t
+;MODEL_DIR = /home/hugh/Dropbox/tmp-PC/AIM_20200818/VEK0729/weights/new/T_detect_0731v4t
+;MODEL_DIR = /home/adat/AIM/VEK0729/weights/new/T_detect_0731v4t
+CUDA_IDX = 0
+
+[SOCKET_CONNTECT]
+;HOST = 192.168.10.2
+;HOST = 192.168.5.113
+HOST = 10.42.0.1 
+;HOST = 0.0.0.0
+TRACK_PORTS = (8001, 8002)
+THIRDP_PORT = 8003
+MAX_RECEIVE = 1024
+
+[CHECK_LIST]
+CKPT0 = (0, 1, 2, 3, 4)
+CKPT1 = (5, 6, 7, 8, 9, 10, 11)
+CKPT2 = (12, 13, 14, 15)
+CKPT3 = (16, 17)
