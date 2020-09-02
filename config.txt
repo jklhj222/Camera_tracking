@@ -2,13 +2,13 @@
 SHARED_LIB = /usr/local/bin/libdarknet.so
 
 [DARKNET_TRACK]
-MODEL_DIR = /workspace/T_tracker_0826v4t 
+MODEL_DIR = /workspace/Tracker_model
 TEMP_REAL_SIZE = (250 ,395)
 CAM_FOV = (49.68, 66.13)
 CUDA_IDX = 0
 
 [DARKNET_DETECT]
-MODEL_DIR = /workspace/T_detect_0826v4t
+MODEL_DIR = /workspace/Detect_model
 CUDA_IDX = 0
 
 [SOCKET_CONNTECT]
