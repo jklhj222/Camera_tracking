@@ -1,0 +1,6 @@
+classes=5
+train  = data/train.txt
+valid  = data/val.txt
+names  = data/adat.names
+backup = backup/
+

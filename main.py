@@ -157,13 +157,16 @@ def run():
                     startup = True
 
                 # start scanning
-                elif recv_id in ['2', '3']:
+                elif recv_id in ['2', '2_diag' '3']:
                     AI_init_time = time.time()   # for_test
 
                     cam_orient, track_objs, detect_objs, img_np = \
                       utils.YoloTrackDetect(img_base64, temp_img,
                                             net_track, meta_track,
                                             net_detect, meta_detect)
+
+                    cv2.imwrite('results/' + str(ii) + '.jpg', img_np)
+
 
                     detect_json = utils.ParseSendJsonMsg(recv_id,
                                                          plugin,
@@ -173,6 +176,39 @@ def run():
                                                          allOut_dicts)
 #                    print('detect_json: ', detect_json)   # for_test
                     print('padip: ', padip)   # for_test
+                    print('detect objs: ', detect_objs)
+                    if detect_objs is not None:
+                        for obj in detect_objs:
+                            print(obj.name, obj.conf)
+
+                    if recv_id == '2_diag':
+                        img_np_cx = int(img_np.shape[1]/2)
+                        img_np_cy = int(img_np.shape[0]/2)
+
+                        diag_objs = [ obj for obj in detect_objs if obj.name == 'self_diag_abnormal' ]
+
+                        diag_objs_pos = []
+                        for obj in diag_objs:
+
+                            obj_rel_pos = ( (obj.cx - img_np_cx) / cam_orient.mm2pixel[0], 
+                                            (obj.cy - img_np_cy) / cam_orient.mm2pixel[1] )
+
+                            obj_real_pos = ( cam_orient.position_real[0] + obj_rel_pos[0],
+                                             cam_orient.position_real[1] + obj_rel_pos[1] )
+
+                            diag_objs_pos.append(obj_real_pos)
+
+                        diag_objs_pos = [ obj for obj in diag_objs_pos 
+                                            if 0 <= obj[0] <= temp_real_size[1] 
+                                            and 0 <= obj[1] <= temp_real_size[0] ]
+
+
+                        detect_json = utils.ParseSendJsonMsg(recv_id,
+                                                             plugin,
+                                                             cam_orient.position_real,
+                                                             cam_orient.yaw_deg,
+                                                             diag_objs,
+                                                             allOut_dicts)
 
 
                     # through check point and save checkpoint
