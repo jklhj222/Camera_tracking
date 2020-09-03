@@ -157,53 +157,83 @@ def run():
                     startup = True
 
                 # start scanning
-                elif recv_id in ['2', '2_diag' '3']:
+                elif recv_id in ['2', '2_diag', '3']:
                     AI_init_time = time.time()   # for_test
 
-                    cam_orient, track_objs, detect_objs, img_np = \
+
+                    cam_orient, track_objs, orig_detect_objs, img_np = \
                       utils.YoloTrackDetect(img_base64, temp_img,
                                             net_track, meta_track,
                                             net_detect, meta_detect)
 
-                    cv2.imwrite('results/' + str(ii) + '.jpg', img_np)
+                    # exclude self_diag_abnormal objects
+                    if orig_detect_objs is not None:
+                        detect_objs = [obj for obj in orig_detect_objs 
+                                         if obj.name != 'self_diag_abnormal']
 
+                    else:
+                        detect_objs = None
 
+                    print('padip: ', padip)   # for_test
+                    print('detect objs: ', detect_objs)   # for_test
+                    print('plugin: ', plugin)   # for_test
                     detect_json = utils.ParseSendJsonMsg(recv_id,
                                                          plugin,
                                                          cam_orient.position_real,
                                                          cam_orient.yaw_deg,
                                                          detect_objs,
                                                          allOut_dicts)
-#                    print('detect_json: ', detect_json)   # for_test
-                    print('padip: ', padip)   # for_test
-                    print('detect objs: ', detect_objs)
-                    if detect_objs is not None:
-                        for obj in detect_objs:
-                            print(obj.name, obj.conf)
+                    print('detect_json: ', detect_json)   # for_test
+#                    # for_test
+#                    if detect_objs is not None:
+#                        for obj in detect_objs:
+#                            print(obj.name, obj.conf)
 
+                    # self diagnosis
                     if recv_id == '2_diag':
-                        img_np_cx = int(img_np.shape[1]/2)
-                        img_np_cy = int(img_np.shape[0]/2)
+                        if cam_orient.mm2pixel is not None:
+                            img_np_cx = int(img_np.shape[1]/2)
+                            img_np_cy = int(img_np.shape[0]/2)
+                    
+                            if detect_objs is not None:
+                                diag_objs = [ obj for obj in orig_detect_objs 
+                                                if obj.name == 'self_diag_abnormal' ]
+                    
+                            else:
+                                diag_objs = []
+                    
+                            diag_objs_pos = []
+                            for obj in diag_objs:
+                    
+                                obj_rel_pos = ( (obj.cx - img_np_cx) / cam_orient.mm2pixel[0], 
+                                                (obj.cy - img_np_cy) / cam_orient.mm2pixel[1] )
+                    
+                                obj_real_pos = ( cam_orient.position_real[0] + obj_rel_pos[0],
+                                                 cam_orient.position_real[1] + obj_rel_pos[1] )
+                    
+                                diag_objs_pos.append(obj_real_pos)
+                    
+                            diag_objs_exist = [ obj for obj in diag_objs_pos 
+                                                  if 0 <= obj[0] <= temp_real_size[1] 
+                                                  and 0 <= obj[1] <= temp_real_size[0] ]
+                    
+                    
+#                            diag_id == '2_diag' if len(diag_objs_exist) != 0 else '2_diag_none'
+                            if len(diag_objs_exist) != 0 and cam_orient.position_real is not None:
+                                diag_id = recv_id
+                    
+                            else:
+                                diag_id = '2_diag_none'
 
-                        diag_objs = [ obj for obj in detect_objs if obj.name == 'self_diag_abnormal' ]
+                        else:
+                            diag_id = recv_id
+                            diag_objs_exist = []
+                            diag_objs = []
 
-                        diag_objs_pos = []
-                        for obj in diag_objs:
+                        print('diag test: ', diag_objs_exist)   # for_test
+                        print('diag recv_id: ', diag_id)   # for_test
 
-                            obj_rel_pos = ( (obj.cx - img_np_cx) / cam_orient.mm2pixel[0], 
-                                            (obj.cy - img_np_cy) / cam_orient.mm2pixel[1] )
-
-                            obj_real_pos = ( cam_orient.position_real[0] + obj_rel_pos[0],
-                                             cam_orient.position_real[1] + obj_rel_pos[1] )
-
-                            diag_objs_pos.append(obj_real_pos)
-
-                        diag_objs_pos = [ obj for obj in diag_objs_pos 
-                                            if 0 <= obj[0] <= temp_real_size[1] 
-                                            and 0 <= obj[1] <= temp_real_size[0] ]
-
-
-                        detect_json = utils.ParseSendJsonMsg(recv_id,
+                        detect_json = utils.ParseSendJsonMsg(diag_id,
                                                              plugin,
                                                              cam_orient.position_real,
                                                              cam_orient.yaw_deg,
