@@ -32,6 +32,7 @@ import math
 import random
 import os
 from configparser import RawConfigParser
+import cv2
 
 cfg_file = 'config.txt'
 config = RawConfigParser()
@@ -276,11 +277,11 @@ def classify(net, meta, im):
 def detect(net, meta, im, thresh=.5, hier_thresh=.5, nms=.45, debug= False):
     #import cv2
     #custom_image_bgr = cv2.imread(image) # use: detect(,,imagePath,)
-    #custom_image = cv2.cvtColor(custom_image_bgr, cv2.COLOR_BGR2RGB)
+    custom_image = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
     #custom_image = cv2.resize(custom_image,(lib.network_width(net), lib.network_height(net)), interpolation = cv2.INTER_LINEAR)
     #import scipy.misc
     #custom_image = scipy.misc.imread(image)
-    im, arr = array_to_image(im)		# you should comment line below: free_image(im)
+    im, arr = array_to_image(custom_image)		# you should comment line below: free_image(im)
     num = c_int(0)
     if debug: print("Assigned num")
     pnum = pointer(num)
