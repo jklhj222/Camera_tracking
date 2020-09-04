@@ -144,7 +144,8 @@ def ParseSendJsonMsg(ID, plugin, position_real=None, yaw=None, detect_objs=None,
     return output_json
 
 
-def ParseSend3rdPartyJsonMsg(img_base64, padip, plugin, defects=None, position_real=None, yaw=None, report_doc_imgs=None):
+def ParseSend3rdPartyJsonMsg(img_base64, padip, plugin, 
+                             defects=None, position_real=None, yaw=None, report_doc_imgs=None):
     # img_base64: jpg image in base64 format
     # defects: defects dicts in a list, [{'id': 'id1', 'status': 'status1'}, 
     #                                    {'id': 'id2', 'status': 'status2'},
