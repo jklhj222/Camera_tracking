@@ -478,15 +478,18 @@ if __name__ == '__main__':
             if conn_3rdp is not None:
                 discon_3rdp_json = utils.ParseSend3rdPartyJsonMsg('disconnect', '0.0.0.0', '1')
  
- 
-                # send the length info. of data to 3rd-p program
-                # (10 bytes: ex. '123456\x00\x00\x00\x00')
-                output_len_str = str(len(discon_3rdp_json))
-                conn_3rdp.send( (output_len_str +
-                                '\x00'*(10-len(output_len_str))).encode() )
-                
-                # send data to 3rd party program
-                conn_3rdp.send( discon_3rdp_json.encode() )                            
+                try:
+                    # send the length info. of data to 3rd-p program
+                    # (10 bytes: ex. '123456\x00\x00\x00\x00')
+                    output_len_str = str(len(discon_3rdp_json))
+                    conn_3rdp.send( (output_len_str +
+                                    '\x00'*(10-len(output_len_str))).encode() )
+                    
+                    # send data to 3rd party program
+                    conn_3rdp.send( discon_3rdp_json.encode() )                            
+
+                except:
+                    pass
 
             SS.disconnect(s_recv, s_send)
             S3P.disconnect()
