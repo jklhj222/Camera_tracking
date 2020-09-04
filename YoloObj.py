@@ -309,6 +309,116 @@ class CamOrient():
 
         return label_dict, objs_coord
 
+
+    def Triangulation(self):
+        tri_objs = self.objs[0:3]
+    
+        # informations of reference object
+        objs_id = []
+        for obj in tri_objs:
+            objs_id.append(self.label_dict[bytes(obj.name, encoding='utf-8'))
+
+        temp_objs_coord = []
+        for obj_id in objs_id:
+            temp_objs_coord.append(self.temp_objs_coord[obj_id])
+
+        temp_real_w = self.temp_realsize[1]
+        temp_real_h = self.temp_realsize[0]
+
+        temp_objs_real_pos = []
+        for temp_obj_coord in temp_objs_coord:
+            temp_objs_real_pos.append((temp_obj_coord[0] * temp_real_w, temp_obj_coord[1] * temp_real_h))
+
+        objs_pos = temp_objs_real_pos
+
+        # distance between central point and three objects (a, b, c) in pixel 
+        cen_dis = ( sqrt(pow(self.tgt_cx - tri_objs[0].cx, 2.0) + 
+                         pow(self.tgt_cy - tri_objs[0].cy, 2.0)),
+
+                    sqrt(pow(self.tgt_cx - tri_objs[1].cx, 2.0) + 
+                         pow(self.tgt_cy - tri_objs[1].cy, 2.0)),
+
+                    sqrt(pow(self.tgt_cx - tri_objs[2].cx, 2.0) + 
+                         pow(self.tgt_cy - tri_objs[2].cy, 2.0)) )
+
+        # distance between objects (A<->B, B<->C, C<->A) in pixel 
+        obj_dis = ( sqrt(pow(tri_objs[0].cx - tri_objs[1].cx, 2.0) + 
+                         pow(tri_objs[0].cy - tri_objs[1].cy, 2.0)),
+
+                    sqrt(pow(tri_objs[1].cx - tri_objs[2].cx, 2.0) + 
+                         pow(tri_objs[1].cy - tri_objs[2].cy, 2.0)),
+
+                    sqrt(pow(tri_objs[2].cx - tri_objs[0].cx, 2.0) + 
+                         pow(tri_objs[2].cy - tri_objs[0].cy, 2.0)) )
+
+        # distance between objects (A<->B, B<->C, C<->A) in mm
+        obj_real_dis = ( sqrt(pow(temp_objs_real_pos[0][0] - temp_objs_real_pos[1][0], 2.0) + 
+                              pow(temp_objs_real_pos[0][1] - temp_objs_real_pos[1][1] , 2.0)),
+
+                         sqrt(pow(temp_objs_real_pos[1][0] - temp_objs_real_pos[2][0], 2.0) + 
+                              pow(temp_objs_real_pos[1][1] - temp_objs_real_pos[2][1] , 2.0)),
+
+                         sqrt(pow(temp_objs_real_pos[2][0] - temp_objs_real_pos[0][0], 2.0) + 
+                              pow(temp_objs_real_pos[2][1] - temp_objs_real_pos[0][1] , 2.0)) )
+
+        mm2pixel = ( obj_real_dis[0]/obj_dis[0] + 
+                     obj_real_dis[1]/obj_dis[1] + 
+                     obj_real_dis[2]/obj_pos[2] ) / 3.0
+
+        pixel2mm = 1.0 / mm2pixel
+
+        # distance between central point and three objects (a, b, c) in mm
+        cen_real_dis = (cen_dis[0] * mm2pixel, cen_dis[1] * mm2pixel, cen_dis[2] )
+
+        
+        # 3x2 matrix
+        A = 2 * np.array([[ objs_pos[0][0] - objs_pos[1][0], objs_pos[0][1] - objs_pos[1][1] ],
+                          [ objs_pos[1][0] - objs_pos[2][0], objs_pos[1][1] - objs_pos[2][1] ],
+                          [ objs_pos[2][0] - objs_pos[0][0], objs_pos[2][1] - objs_pos[0][1] ]]) 
+
+        # 3x1 matrix
+        B = np.array([[ (pow(cen_real_dis[1], 2.0) - pow(cen_real_dis[0], 2.0)) - 
+                        (pow(objs_pos[1][0], 2.0) - pow(objs_objs[0][0], 2.0)) - 
+                        (pow(objs_pos[1][1], 2.0) - pow(objs_objs[0][1], 2.0)) ],
+
+                      [ (pow(cen_real_dis[2], 2.0) - pow(cen_real_dis[1], 2.0)) - 
+                        (pow(objs_pos[2][0], 2.0) - pow(objs_pos[1][0], 2.0)) - 
+                        (pow(objs_pos[2][1], 2.0) - pow(objs_pos[1][1], 2.0)) ],
+
+                      [ (pow(cen_real_dis[0], 2.0) - pow(cen_real_dis[2], 2.0)) - 
+                        (pow(objs_pos[0][0], 2.0) - pow(objs_pos[2][0], 2.0)) - 
+                        (pow(objs_pos[0][1], 2.0) - pow(objs_pos[2][1], 2.0)) ]
+                      ])
+
+
+#        # 3x2 matrix
+#        A = 2 * np.array([[ tri_objs[0].cx - tri_objs[1].cx, tri_objs[0].cy - tri_objs[1].cy ],
+#                          [ tri_objs[1].cx - tri_objs[2].cx, tri_objs[1].cy - tri_objs[2].cy ],
+#                          [ tri_objs[2].cx - tri_objs[0].cx, tri_objs[2].cy - tri_objs[0].cy ]]) 
+#
+#        # 3x1 matrix
+#        B = np.array([[ (pow(dis[1], 2.0) - pow(dis[0], 2.0)) - 
+#                        (pow(tri_objs[1].cx, 2.0) - pow(tri_objs[0].cx, 2.0)) - 
+#                        (pow(tri_objs[1].cy, 2.0) - pow(tri_objs[0].cy, 2.0)) ],
+#
+#                      [ (pow(dis[2], 2.0) - pow(dis[1], 2.0)) - 
+#                        (pow(tri_objs[2].cx, 2.0) - pow(tri_objs[1].cx, 2.0)) - 
+#                        (pow(tri_objs[2].cy, 2.0) - pow(tri_objs[1].cy, 2.0)) ],
+#
+#                      [ (pow(dis[0], 2.0) - pow(dis[2], 2.0)) - 
+#                        (pow(tri_objs[0].cx, 2.0) - pow(tri_objs[2].cx, 2.0)) - 
+#                        (pow(tri_objs[0].cy, 2.0) - pow(tri_objs[2].cy, 2.0)) ]
+#                      ])
+
+        xy_position_real = np.linalg.lstsq(A, B, rcond=-1)[0].tolist()
+
+        xy_position_pixel = ( xy_position_real[0] * mm2pixel, 
+                              xy_position_real[1] * mm2pixel )
+
+        return xy_position_pixel, position_real
+
+
+
     def PosMapping(self):
         obj = self.objs[0]
         
