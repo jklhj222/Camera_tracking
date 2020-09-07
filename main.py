@@ -109,6 +109,7 @@ def run():
         process1.daemon = True
         process1.start()
 
+        print('waiting for head data')
         head = q.get()
         data_len = int(SS.bytes2str(head).strip('\x00'))
         
@@ -128,6 +129,7 @@ def run():
             process1.daemon = True
             process1.start()
 
+            print('waiting for the data')
             data = q.get() 
             data_decode = SS.bytes2str(data)
 
@@ -322,7 +324,16 @@ def run():
                         conn_3rdp.send( report_3rdp_json.encode() )                            
 
                     closeAI_json = utils.ParseSendJsonMsg(recv_id, plugin)
+                    print('recv_id4 test', closeAI_json)   # for_test
+
+                    # send the length info. of data to 3rd-p program
+                    # (10 bytes: ex. '123456\x00\x00\x00\x00')
+                    output_len_str = str(len(closeAI_json))
+                    send_conn.send( (output_len_str +
+                                    '\x00'*(10-len(output_len_str))).encode() )
+            
                     send_conn.send( closeAI_json.encode() )
+                    print('recv_id4 test2')   # for_test
 
                 elif recv_id == '5':
 
@@ -338,6 +349,12 @@ def run():
                                                          plugin,
                                                          detect_objs=final_report)
 
+                    # send the length info. of data to 3rd-p program
+                    # (10 bytes: ex. '123456\x00\x00\x00\x00')
+                    output_len_str = str(len(report_json))
+                    send_conn.send( (output_len_str +
+                                    '\x00'*(10-len(output_len_str))).encode() )
+            
                     send_conn.send( report_json.encode() )
 
                     raise ValueError 
@@ -460,6 +477,9 @@ def socket_connect(host, track_ports, thridp_port):
 
 if __name__ == '__main__':
     q = mp.Queue()
+
+#    if os.path.isfile('log'):
+#        os.remove('log')
 
     print(host, track_ports, thirdp_port)
 
