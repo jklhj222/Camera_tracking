@@ -361,11 +361,13 @@ class CamOrient():
                          sqrt(pow(temp_objs_real_pos[2][0] - temp_objs_real_pos[0][0], 2.0) + 
                               pow(temp_objs_real_pos[2][1] - temp_objs_real_pos[0][1] , 2.0)) )
 
-        mm2pixel = ( obj_real_dis[0]/obj_dis[0] + 
-                     obj_real_dis[1]/obj_dis[1] + 
-                     obj_real_dis[2]/obj_pos[2] ) / 3.0
+        w_mm2pixel = ((tri_objs[1].cx - tri_objs[0].cx) / (objs_pos[1][0] - objs_pos[0][0]) + 
+                      (tri_objs[2].cx - tri_objs[1].cx) / (objs_pos[2][0] - objs_pos[1][0]) +
+                      (tri_objs[0].cx - tri_objs[1].cx) / (objs_pos[0][0] - objs_pos[1][0])) / 3.0
 
-        pixel2mm = 1.0 / mm2pixel
+        h_mm2pixel = ((tri_objs[1].cy - tri_objs[0].cy) / (objs_pos[1][1] - objs_pos[0][1]) + 
+                      (tri_objs[2].cy - tri_objs[1].cy) / (objs_pos[2][1] - objs_pos[1][1]) +
+                      (tri_objs[0].cy - tri_objs[1].cy) / (objs_pos[0][1] - objs_pos[1][1])) / 3.0
 
         # distance between central point and three objects (a, b, c) in mm
         cen_real_dis = (cen_dis[0] * mm2pixel, cen_dis[1] * mm2pixel, cen_dis[2] )
@@ -410,12 +412,13 @@ class CamOrient():
 #                        (pow(tri_objs[0].cy, 2.0) - pow(tri_objs[2].cy, 2.0)) ]
 #                      ])
 
+        # x = (A^-1)B
         xy_position_real = np.linalg.lstsq(A, B, rcond=-1)[0].tolist()
 
         xy_position_pixel = ( xy_position_real[0] * mm2pixel, 
                               xy_position_real[1] * mm2pixel )
 
-        return xy_position_pixel, position_real
+        return xy_position_pixel, position_real, (w_mm2pixel, h_mm2pixel)
 
 
 
