@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """ Created on Wed Jan 23 16:03:43 2019 @author: jklhj """
-from math import ceil, sqrt, pi, sin, acos, pow
+from math import ceil, sqrt, pi, sin, tan, acos, pow
 import numpy as np
 import sys 
 import cv2 
@@ -263,7 +263,17 @@ class CamOrient():
         self.label_dict, self.temp_objs_coord = \
             self.LoadTempInfo(meta, temp_objs_coord_file)
 
-        if len(objs) >= 2:
+        if len(objs) >= 3:
+            print('into self.Triangulation.')   # for_test
+            self.xy_position_pixel, \
+            self.position_real, \
+            self.cam_height, \
+            self.temp_tgt_ratio, \
+            self.mm2pixel = self.Triangulation()
+
+            self.yaw_rad, self.yaw_deg = self.CalcYaw()
+
+        elif len(objs) == 2:
             self.xy_position_pixel, \
             self.position_real, \
             self.cam_height, \
@@ -312,11 +322,17 @@ class CamOrient():
 
     def Triangulation(self):
         tri_objs = self.objs[0:3]
+
+        # FOV of the camera
+        fov_w_deg = self.cam_fov_deg[1]
+        fov_h_deg = self.cam_fov_deg[0]
+        fov_w_rad = fov_w_deg * (pi/180.0) 
+        fov_h_rad = fov_h_deg * (pi/180.0)
     
         # informations of reference object
         objs_id = []
         for obj in tri_objs:
-            objs_id.append(self.label_dict[bytes(obj.name, encoding='utf-8'))
+            objs_id.append(self.label_dict[bytes(obj.name, encoding='utf-8')])
 
         temp_objs_coord = []
         for obj_id in objs_id:
@@ -330,6 +346,8 @@ class CamOrient():
             temp_objs_real_pos.append((temp_obj_coord[0] * temp_real_w, temp_obj_coord[1] * temp_real_h))
 
         objs_pos = temp_objs_real_pos
+        print('tri_objs: ', tri_objs)   # for_test
+        print('objs_pos: ', objs_pos)   # for_test
 
         # distance between central point and three objects (a, b, c) in pixel 
         cen_dis = ( sqrt(pow(self.tgt_cx - tri_objs[0].cx, 2.0) + 
@@ -370,7 +388,13 @@ class CamOrient():
                       (tri_objs[0].cy - tri_objs[1].cy) / (objs_pos[0][1] - objs_pos[1][1])) / 3.0
 
         # distance between central point and three objects (a, b, c) in mm
-        cen_real_dis = (cen_dis[0] * mm2pixel, cen_dis[1] * mm2pixel, cen_dis[2] )
+#        cen_real_dis = (cen_dis[0] * mm2pixel, cen_dis[1] * mm2pixel, cen_dis[2] )
+        cen_real_dis = []
+        for i in range(3):
+            dis = sqrt(pow((self.tgt_cx - tri_objs[0].cx) / w_mm2pixel, 2.0) + 
+                       pow((self.tgt_cy - tri_objs[0].cy) / h_mm2pixel, 2.0))
+
+            cen_real_dis.append(dis)
 
         
         # 3x2 matrix
@@ -380,8 +404,8 @@ class CamOrient():
 
         # 3x1 matrix
         B = np.array([[ (pow(cen_real_dis[1], 2.0) - pow(cen_real_dis[0], 2.0)) - 
-                        (pow(objs_pos[1][0], 2.0) - pow(objs_objs[0][0], 2.0)) - 
-                        (pow(objs_pos[1][1], 2.0) - pow(objs_objs[0][1], 2.0)) ],
+                        (pow(objs_pos[1][0], 2.0) - pow(objs_pos[0][0], 2.0)) - 
+                        (pow(objs_pos[1][1], 2.0) - pow(objs_pos[0][1], 2.0)) ],
 
                       [ (pow(cen_real_dis[2], 2.0) - pow(cen_real_dis[1], 2.0)) - 
                         (pow(objs_pos[2][0], 2.0) - pow(objs_pos[1][0], 2.0)) - 
@@ -414,11 +438,34 @@ class CamOrient():
 
         # x = (A^-1)B
         xy_position_real = np.linalg.lstsq(A, B, rcond=-1)[0].tolist()
+        xy_position_real = (xy_position_real[0][0], xy_position_real[1][0])
 
-        xy_position_pixel = ( xy_position_real[0] * mm2pixel, 
-                              xy_position_real[1] * mm2pixel )
+        print('xy_position_real: ', xy_position_real)   # for_test
+        print('mm2pixel: ', w_mm2pixel, h_mm2pixel)   # for_test
+        xy_position_pixel = ( int(xy_position_real[0] * w_mm2pixel), 
+                              int(xy_position_real[1] * h_mm2pixel) )
 
-        return xy_position_pixel, position_real, (w_mm2pixel, h_mm2pixel)
+        cam_height = ( (self.tgt_w / (w_mm2pixel * 2.0)) / tan(fov_w_rad/2.0) + 
+                       (self.tgt_h / (h_mm2pixel * 2.0)) / tan(fov_h_rad/2.0) ) / 2.0
+
+        position_real = (xy_position_real[0], xy_position_real[1], cam_height)
+
+        w_ratio = ( (temp_objs_coord[1][0] - temp_objs_coord[0][0]) * temp_real_w / 
+                      (tri_objs[1].cx - tri_objs[0].cx) + 
+                    (temp_objs_coord[2][0] - temp_objs_coord[1][0]) * temp_real_w / 
+                      (tri_objs[2].cx - tri_objs[1].cx) +
+                    (temp_objs_coord[0][0] - temp_objs_coord[2][0]) * temp_real_w / 
+                      (tri_objs[0].cx - tri_objs[2].cx) ) / 3.0
+
+        h_ratio = ( (temp_objs_coord[1][1] - temp_objs_coord[0][1]) * temp_real_h / 
+                      (tri_objs[1].cy - tri_objs[0].cy) + 
+                    (temp_objs_coord[2][1] - temp_objs_coord[1][1]) * temp_real_w / 
+                      (tri_objs[2].cy - tri_objs[1].cy) +
+                    (temp_objs_coord[0][1] - temp_objs_coord[2][1]) * temp_real_w / 
+                      (tri_objs[0].cy - tri_objs[2].cy) ) / 3.0
+
+        return xy_position_pixel, position_real, cam_height, \
+                (w_ratio, h_ratio), (w_mm2pixel, h_mm2pixel)
 
 
 
