@@ -152,12 +152,12 @@ def DrawBBox(objs, img, color=(0, 255, 0), width=5):
     for obj in objs:
         cv2.rectangle(img_bbox, (obj.l, obj.t), (obj.r, obj.b), color, width)
        
-#        cv2.line(img_bbox, (obj.l, obj.t), (obj.r, obj.b), color, width)
-#        cv2.line(img_bbox, (obj.r, obj.t), (obj.l, obj.b), color, width)
+        cv2.line(img_bbox, (obj.l, obj.t), (obj.r, obj.b), color, width)
+        cv2.line(img_bbox, (obj.r, obj.t), (obj.l, obj.b), color, width)
 
-#        cv2.circle(img_bbox, (obj.cx, obj.cy), 10, color, -1)
-#        cv2.circle(img_bbox, (int(img.shape[1]/2), int(img.shape[0]/2)), 
-#                   15, (0, 0, 255), -1)
+        cv2.circle(img_bbox, (obj.cx, obj.cy), 10, color, -1)
+        cv2.circle(img_bbox, (int(img.shape[1]/2), int(img.shape[0]/2)), 
+                   15, (0, 0, 255), -1)
 
         cv2.putText(img_bbox,
                     'class: ' + obj.name + '_conf: ' + str(obj.conf),
@@ -319,9 +319,19 @@ class CamOrient():
 
         return label_dict, objs_coord
 
+    def CalcNorm(self, a_point, b_point):
+        vec = (a_point[0] - b_point[0], a_point[1] - b_point[1])
+
+        norm = np.linalg.norm(vec)
+
+        return norm
+
 
     def Triangulation(self):
         tri_objs = self.objs[0:3]
+
+        for obj in tri_objs:
+            print('obj: ', obj.name, obj.cx, obj.cy)
 
         # FOV of the camera
         fov_w_deg = self.cam_fov_deg[1]
@@ -379,22 +389,39 @@ class CamOrient():
                          sqrt(pow(temp_objs_real_pos[2][0] - temp_objs_real_pos[0][0], 2.0) + 
                               pow(temp_objs_real_pos[2][1] - temp_objs_real_pos[0][1] , 2.0)) )
 
-        w_mm2pixel = ((tri_objs[1].cx - tri_objs[0].cx) / (objs_pos[1][0] - objs_pos[0][0]) + 
-                      (tri_objs[2].cx - tri_objs[1].cx) / (objs_pos[2][0] - objs_pos[1][0]) +
-                      (tri_objs[0].cx - tri_objs[1].cx) / (objs_pos[0][0] - objs_pos[1][0])) / 3.0
+#        w_mm2pixel = ((tri_objs[1].cx - tri_objs[0].cx) / (objs_pos[1][0] - objs_pos[0][0]) + 
+#                      (tri_objs[2].cx - tri_objs[1].cx) / (objs_pos[2][0] - objs_pos[1][0]) +
+#                      (tri_objs[0].cx - tri_objs[2].cx) / (objs_pos[0][0] - objs_pos[2][0])) / 3.0
+#
+#        h_mm2pixel = ((tri_objs[1].cy - tri_objs[0].cy) / (objs_pos[1][1] - objs_pos[0][1]) + 
+#                      (tri_objs[2].cy - tri_objs[1].cy) / (objs_pos[2][1] - objs_pos[1][1]) +
+#                      (tri_objs[0].cy - tri_objs[2].cy) / (objs_pos[0][1] - objs_pos[2][1])) / 3.0
 
-        h_mm2pixel = ((tri_objs[1].cy - tri_objs[0].cy) / (objs_pos[1][1] - objs_pos[0][1]) + 
-                      (tri_objs[2].cy - tri_objs[1].cy) / (objs_pos[2][1] - objs_pos[1][1]) +
-                      (tri_objs[0].cy - tri_objs[1].cy) / (objs_pos[0][1] - objs_pos[1][1])) / 3.0
+        AB_mm2pixel = self.CalcNorm((tri_objs[0].cx, tri_objs[0].cy), 
+                                    (tri_objs[1].cx, tri_objs[1].cy)) / \
+                      self.CalcNorm(objs_pos[0], objs_pos[1])
+
+        BC_mm2pixel = self.CalcNorm((tri_objs[1].cx, tri_objs[1].cy), 
+                                    (tri_objs[2].cx, tri_objs[2].cy)) / \
+                        self.CalcNorm(objs_pos[1], objs_pos[2])
+
+        CA_mm2pixel = self.CalcNorm((tri_objs[2].cx, tri_objs[2].cy), 
+                                    (tri_objs[0].cx, tri_objs[0].cy)) / \
+                        self.CalcNorm(objs_pos[2], objs_pos[0])
+
+        w_mm2pixel = h_mm2pixel = (AB_mm2pixel+BC_mm2pixel+CA_mm2pixel) / 3.0
+
 
         # distance between central point and three objects (a, b, c) in mm
 #        cen_real_dis = (cen_dis[0] * mm2pixel, cen_dis[1] * mm2pixel, cen_dis[2] )
         cen_real_dis = []
         for i in range(3):
-            dis = sqrt(pow((self.tgt_cx - tri_objs[0].cx) / w_mm2pixel, 2.0) + 
-                       pow((self.tgt_cy - tri_objs[0].cy) / h_mm2pixel, 2.0))
+            dis = sqrt(pow((self.tgt_cx - tri_objs[i].cx) / w_mm2pixel, 2.0) + 
+                       pow((self.tgt_cy - tri_objs[i].cy) / h_mm2pixel, 2.0))
 
             cen_real_dis.append(dis)
+
+        print('cen_real_dis: ', cen_real_dis)
 
         
         # 3x2 matrix
@@ -463,6 +490,13 @@ class CamOrient():
                       (tri_objs[2].cy - tri_objs[1].cy) +
                     (temp_objs_coord[0][1] - temp_objs_coord[2][1]) * temp_real_w / 
                       (tri_objs[0].cy - tri_objs[2].cy) ) / 3.0
+
+
+
+
+
+
+
 
         return xy_position_pixel, position_real, cam_height, \
                 (w_ratio, h_ratio), (w_mm2pixel, h_mm2pixel)
