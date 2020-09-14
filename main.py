@@ -216,8 +216,8 @@ def run():
                                 diag_objs_pos.append(obj_real_pos)
                     
                             diag_objs_exist = [ obj for obj in diag_objs_pos 
-                                                  if 0 <= obj[0] <= temp_real_size[1] 
-                                                  and 0 <= obj[1] <= temp_real_size[0] ]
+                                                  if 0 + 20 <= obj[0] <= temp_real_size[1] -20
+                                                  and 0 + 20 <= obj[1] <= temp_real_size[0] - 20 ]
                     
                     
 #                            diag_id == '2_diag' if len(diag_objs_exist) != 0 else '2_diag_none'
