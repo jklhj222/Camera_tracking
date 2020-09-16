@@ -1,0 +1,6 @@
+classes=5
+train  = data/train.txt
+valid  = data/val.txt
+names  = /workspace/T_detect_0916v4t/label.names
+backup = backup/
+
